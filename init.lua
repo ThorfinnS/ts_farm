@@ -1,59 +1,6 @@
 local modname = minetest.get_current_modname()
 local modpath = minetest.get_modpath(modname)
 
-
-
-local function dumper(s,m,o,a,l,p)
--- s-table to output
--- m-message, default ""
--- o-output file name, default "logger.txt" in modpath of current mod
--- 		Note: pathnames ok, but they must exist
--- a-open attribute (a)ppend, (w)rite, default "a", w overwrites file
--- l-limit to structure depth, default 100
--- p-prefix, string prepending each line, default ""
--- Call as dumper() or dumper("") to clear logger.txt
-
-local n,h='\n'
-
-local function rec_dump(s, l, p) 
-	if (l<1) then 
-		h:write("Table depth limit reached.\n")
-		return l-1 
-	end;
-	local t = type(s);
-	if (t ~= "table") then 
-		h:write(tostring(p),tostring(t),'-- ',tostring(s),'\n')
-		return l-1 
-	end
-	h:write(tostring(p),tostring(t),'\n')
-	for k,v in pairs(s) do  
-		l = rec_dump(v, l, p.."\t["..tostring(k).."]");
-		if (l < 0) then break end
-	end
-	return l
-end	
-
-m=m or ''
-if s==nil or s=='' then a='w';s=0; end
-if a~="w" then a='a' end
-if o=="" or o==nil then 
-	h = assert(io.open(modpath..'/logger.txt',a))
-else
-	h = assert(io.open(modpath..'/'..o,a))
-end
-
-if s~=0 then
-	l = (l) or 100; p = p or "" -- set defaults
-	h:write(n,m,n)
-	rec_dump(s,l,p)
-	h:write(n,n)
-end
-h:flush()
-h:close()
-
-end
-
-
 local function define_crops(name, desc, cropgroups, seedgroups, growgroups, mature,
 	fully_grown, lmin, lmax, dropper,
 	hmin, hmax, seed, rarity, dec_name, spawnon, spawnby, num)
