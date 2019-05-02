@@ -1,8 +1,14 @@
 # Reduces oil output in Basic Materials mod from 1:2 leaves to 1:6 leaves
-basic_materials_oil_rebalance (Rebalance Basic Materials oil?) bool true
+basic_materials_oil_rebalance (Rebalance Basic Materials Oil) bool true
 
 # Change to unique recipe for Wooden Bucket mod
-wooden_bucket_recipe (New Bucket Recipe?) bool true
+wooden_bucket_recipe (New Bucket Recipe) bool true
 
-# Add functionality to grow marram grass in Farming Redo
-farming_marram (Farmable Marram Grass?) bool true
+# Growable marram grass? (Requires Farming Redo)
+farming_marram (Farmable Marram Grass) bool true
+
+#Random seed for crop generation?
+random_crop_seed (Random Farming Seed) bool true
+
+#Variable Crop Rarity?
+variable_crop_rarity (Variable Crop Rarity) bool true
