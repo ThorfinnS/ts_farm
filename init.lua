@@ -3,51 +3,51 @@ local modpath = minetest.get_modpath(modname)
 
 
 
-local function dumper(s,m,o,a,l,i)
+local function dumper(s,m,o,a,l,p)
 -- s-table to output
 -- m-message, default ""
--- o-output file name, default "logger.txt"
--- a-open attribute (a)ppend, (w)rite, default "a"
+-- o-output file name, default "logger.txt" in modpath of current mod
+-- 		Note: pathnames ok, but they must exist
+-- a-open attribute (a)ppend, (w)rite, default "a", w overwrites file
 -- l-limit to structure depth, default 100
--- i-indent, string prepending each line, default ""
--- use no parameters to clear logger.txt
+-- p-prefix, string prepending each line, default ""
+-- Call as dumper() or dumper("") to clear logger.txt
 
-local n='\n'
-local h
+local n,h='\n'
 
-local function rWrite(s, l, i) 
+local function rec_dump(s, l, p) 
 	if (l<1) then 
-		h:write("ERROR: Item limit reached.\n")
+		h:write("Table depth limit reached.\n")
 		return l-1 
 	end;
-	local ts = type(s);
-	if (ts ~= "table") then 
-		h:write(tostring(i),tostring(ts),'-- ',tostring(s),'\n')
+	local t = type(s);
+	if (t ~= "table") then 
+		h:write(tostring(p),tostring(t),'-- ',tostring(s),'\n')
 		return l-1 
 	end
-	h:write(tostring(i),tostring(ts),'\n')
+	h:write(tostring(p),tostring(t),'\n')
 	for k,v in pairs(s) do  
-		l = rWrite(v, l, i.."\t["..tostring(k).."]");
+		l = rec_dump(v, l, p.."\t["..tostring(k).."]");
 		if (l < 0) then break end
 	end
 	return l
 end	
 
-if s==nil then s={} end
-if a~="w" then
-	a='a'
-end
+m=m or ''
+if s==nil or s=='' then a='w';s=0; end
+if a~="w" then a='a' end
 if o=="" or o==nil then 
 	h = assert(io.open(modpath..'/logger.txt',a))
 else
 	h = assert(io.open(modpath..'/'..o,a))
 end
-if m==nil then m="" end
 
-l = (l) or 100; i = i or "" -- set defaults
-h:write(n,m,n)
-rWrite(s,l,i)
-h:write(n,n)
+if s~=0 then
+	l = (l) or 100; p = p or "" -- set defaults
+	h:write(n,m,n)
+	rec_dump(s,l,p)
+	h:write(n,n)
+end
 h:flush()
 h:close()
 
@@ -56,34 +56,32 @@ end
 
 local function define_crops(name, desc, cropgroups, seedgroups, growgroups, mature,
 	fully_grown, lmin, lmax, dropper,
-	hmin, hmax, spawnon, spawnby, num, seed, rarity, deco_name)
+	hmin, hmax, seed, rarity, dec_name, spawnon, spawnby, num)
 
-	local cropname=modname..":"..name
-	local seedname=modname..":seed_"..name
-	local croppng="farming_"..name..".png"
-	local seedpng="farming_"..name.."_seed"..".png"
-	local stagename="farming_"..name.."_"
+local m,s,f,p,u=modname..':','seed','farming_'..name,'.png','_'
+local cropname,seedname,stagename=m..name,m..s..u..name,f..u
+local croppng,seedpng=f..p,f..u..s..p
 
- local function multiplier()
+local function multiplier()
 	return (math.random()+math.random()+math.random()+math.random())/2
 end
 
 
 -- concatenate groups if any passed in
 local seed_grp = {seed = 1, snappy = 3, attached_node = 1}
-for _, v in pairs(seedgroups) do
-	table.insert(seed_grp, v)
+for _, v in pairs(seedgroups) do seed_grp[#seed_grp+1]=v
+	-- table.insert(seed_grp, v)
 end
 
 local grow_grp = {snappy = 3, flammable = 2, plant = 1, attached_node = 1,
 	not_in_creative_inventory = 1, growing = 1}
-for _, v in pairs(growgroups) do
-	table.insert(grow_grp, v)
+for _, v in pairs(growgroups) do grow_grp[#grow_grp+1]=v
+	-- table.insert(grow_grp, v)
 end
 
 local crop_grp = {food_barley = 1, flammable = 2}
-for _, v in pairs(cropgroups) do
-	table.insert(crop_grp, v)
+for _, v in pairs(cropgroups) do crop_grp[#crop_grp+1]=v
+	-- table.insert(crop_grp, v)
 end
 
 
@@ -108,7 +106,7 @@ minetest.register_node(seedname, {
 -- define harvested crop
 minetest.register_craftitem(cropname, {
 	description = desc,
-	inventory_image = name..".png",
+	inventory_image = croppng,
 	groups = crop_grp,
 })
 
@@ -129,10 +127,9 @@ local crop_def = {
 }
 
 local u={}
-local w={}
-local s={}
+local v,w,s=u,u,u
 for n=1,fully_grown do
-	u={}
+	u=v
 	crop_def.tiles = {stagename..tostring(n)..".png"} 
 	if n>= mature then -- define each stage
 		s=dropper[n-mature+1] -- stage n harvest 
@@ -153,13 +150,13 @@ for n=1,fully_grown do
 end
 
 
-	-- add to registered_plants
-	farming.registered_plants[cropname] = {
-		crop = cropname,
-		seed = seedname,
-		minlight = lmin, 
-		maxlight = lmax, 
-		steps = fully_grown
+-- add to registered_plants
+farming.registered_plants[cropname] = {
+	crop = cropname,
+	seed = seedname,
+	minlight = lmin, 
+	maxlight = lmax, 
+	steps = fully_grown
 }
 
 -- Fuel
@@ -170,75 +167,54 @@ minetest.register_craft({
 })
 
 -- flour
--- minetest.register_craft({
-	-- type = "shapeless",
-	-- output = "farming:flour",
-	-- recipe = {
-		-- "farming:barley", "farming:barley", "farming:barley",
-		-- "farming:barley", "farming:mortar_pestle"
-	-- },
-	-- replacements = {{"group:food_mortar_pestle", "farming:mortar_pestle"}},
--- })
+if minetest.get_item_group(cropname,'mill')==1 then 
+	minetest.register_craftitem(cropname..'_flour', {
+		description = desc..' Flour',
+		inventory_image = croppng,
+		groups = {flammable = 2, flour=1},
+	})
 
--- marram grass to thatch
-minetest.register_craftitem(cropname, {
-	description = "Thatch",
-	inventory_image = croppng,
-	groups = {flammable = 2},
-})
-
-minetest.register_craft({
-	type = "shapeless",
-	output = "farming:straw 3",
-	recipe = {
-		cropname
-	}
-})
-
-minetest.override_item("default:marram_grass_3", {
-	drop = {
-		max_items = 3, 
-		items = {
-			{items = {cropname}},
-			{items = {seedname}},
-			{items = {seedname}, rarity = 5},
-			{items = {seedname}, rarity = 8},
-		}
-	},
-})
+	minetest.register_craft({
+		type = "shapeless",
+		output = cropname..'_flour',
+		recipe = {
+			cropname, cropname, cropname,
+			cropname, "farming:mortar_pestle"
+		},
+		replacements = {{"group:food_mortar_pestle", "farming:mortar_pestle"}},
+	})
+end
 
 
--- decoration function
--- local function register_plant(name, min, max, spawnon, spawnby, num, rarety)
 
--- do not place on mapgen if no value given (or not true)
--- if not rarety then
-	-- return
--- end
-if deco_name=='' or deco_name==nil then return end
-if variable_farming_rarity == true then scaler = scaler * multiplier() end
-if spawnon == nil then spawnon = {"default:dirt_with_grass"} end
--- minetest.log(name.."  Rarity: "..scaler)
-local seeder = math.random(999)
+
+
+-- Code inspired by TenPlus1's Farming Redo
+if dec_name~='' or dec_name~=nil then
+	local v=minetest.settings:get_bool("variable_crop_rarity") or true
+	local r=minetest.settings:get_bool("random_crop_seed") or true
+	if v == true then rarity = rarity * multiplier() end
+	if spawnon == nil then spawnon = {"default:dirt_with_grass"} end
+	minetest.log(name.."  Rarity: "..rarity)
+	local seeder = math.random(999)
 
 -- Next code block is legacy support for TenPlus1's fixed seeds.	
 -- Kill the whole block if you don't care about static mapgen.
 -- From here:
-if random_crop_seed == false then -- No, I want my TenPlus1's static seeds!
-	if string.find(name, "hemp")  == 1 then 
-		seeder = 420
-	elseif string.find(name, "chili") == 1 then
-		seeder = 760
-	elseif string.find(name, "pepper") == 1 then
-		seeder = 933
-	elseif string.find(name, "pineapple") == 1 then
-		seeder = 917
-	else
-		seeder = 329
+	if r == false then -- No, I want my TenPlus1's static seeds!
+		if string.find(name, "hemp")  == 1 then 
+			seeder = 420
+		elseif string.find(name, "chili") == 1 then
+			seeder = 760
+		elseif string.find(name, "pepper") == 1 then
+			seeder = 933
+		elseif string.find(name, "pineapple") == 1 then
+			seeder = 917
+		else
+			seeder = 329
+		end
 	end
-end
 -- To here.	
-
 
 
 minetest.register_decoration({
@@ -247,26 +223,32 @@ minetest.register_decoration({
 	sidelen = 16,
 	noise_params = {
 		offset = 0,
-		scale = scaler, 
+		scale = rarity, 
 		spread = {x = 100, y = 100, z = 100},
 		seed = seeder,
 		octaves = 3,
 		persist = 0.6
 	},
-	y_min = min,
-	y_max = max,
-	decoration = deco_name,
+	y_min = hmin,
+	y_max = hmax,
+	decoration = dec_name,
 	spawn_by = spawnby,
 	num_spawn_by = num,
 })
 end
+end
+
+-- ---------------------------------------------------------------------------------------
+-- --------------------------------------------BEGIN MAIN CODE ---------------------------
+-- ---------------------------------------------------------------------------------------
 
 
-
-
+dumper()
 
 dofile(modpath..'/newblocks.lua')
 dofile(modpath..'/mod_tweaks.lua')
+dofile(modpath..'/overrides.lua')
+dofile(modpath..'/recipes.lua')
 
 
 --[[
@@ -290,24 +272,37 @@ field -- type- description
 				repeat for next stages as needed
 	hmin,		i- minimum placement elevation (mapgen) 
 	hmax,		i- maximum placement elevation  (mapgen)
+	seed		i- sigh. some people want repeatable mapgens. just put in some integer
+	rarity		f- .01 is thick, .0001 is very rare. I use around .0005
+	dec_name	t- node to place during mapgen
 	spawnon,	t- block mapgen places the crop on
 	spawnby,	t- block mapgen places the crop next to
 	num			i- number of adjacent blocks that must be "spawnby"
-	seed		i- sigh. some people want repeatable mapgens. just put in some integer
-	rarity		f- .01 is thick, .0001 is very rare. I use around .0005
-	deco_name	t- node to place during mapgen
 	)
 --]]
 
---[[
-local function define_crops(
-	name, desc, cropgroups, seedgroups, growgroups, mature, fully_grown, lmin, lmax, 
-	dropper, hmin, hmax, spawnon, spawnby, num, seed, rarity, deco_name)
---]]
 
-define_crops("marram","Marram Grass",{},{},{},5,6,12,15,
-	{{9,{'c',1,3},{'s',1,2}},
-	{9,{'c',2,1},{'c',1,3},{'s',1,1},{'s',1,3}}},
-	0, 0, nil, nil, 0, 1, 329,"")
+local grass = "default:dirt_with_grass"
+local dry = "default:dirt_with_dry_grass"
+local jungle = "default:dirt_with_rainforest_litter"
+-- for future crops for under-served biomes?
+-- local forest = "default:dirt_with_coniferous_litter" -- raspberries?
+-- local snow = "default:dirt_with_snow" -- cloudberries?
+-- local desert = "default:desert_sand" -- agave?
+
+
+define_crops(
+-- plant and growth parameters
+	"marram","Marram Grass", --name, desc
+	{},{},{}, --cropgroups, seedgroups, growgroups
+	5,6,12,15, --mature, fully_grown, lmin, lmax
+--drops
+	{
+	{9,{'c',1,3},{'s',1,2}}, -- mature stage, {max items,{drop,qty,rarity}...} 
+	{9,{'c',2,1},{'c',1,3},{'s',1,1},{'s',1,3}} --next stage, repeat as needed
+	},
+-- mapgen parameters
+	1, 100, 329, .0005,"", --hmin, hmax, seed, rarity, dec_name
+	nil, nil,-1) --spawnon, spawnby, num
 
 
