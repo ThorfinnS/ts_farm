@@ -1,8 +1,3 @@
-local dirt = "default:dirt"
-local sand = "group:sand"
-local leaves = "group:leaves"
-local wood  = "group:wood"
-local nada = ""
 local modname = minetest.get_current_modname()
 local modpath = minetest.get_modpath(modname)
 
@@ -270,78 +265,9 @@ end
 
 
 
+dofile(modpath..'/newblocks.lua')
+dofile(modpath..'/mod_tweaks.lua')
 
--- wooden_bucket mod
-if minetest.settings:get_bool("wooden_bucket_recipe") ~= false then
-	if minetest.registered_items["bucket_wooden:bucket_empty"] then
--- change recipe for wooden_bucket so it doesn't conflict with farming_redo or ethereal
-		minetest.register_craft({
-			output = 'bucket_wooden:bucket_empty',
-			recipe = {
-				{wood, leaves, wood},
-				{nada, wood, nada},
-			}
-		})
-	end
-end -- wooden_bucket mod
-
-
--- basic materials
-if minetest.registered_items["basic_materials:oil_extract"] then
-	if minetest.settings:get_bool("basic_materials_oil_rebalance") ~= false then
--- Rebalanced basic materials mod. Still turns a 24 burn time into a 30 burn time, but
---	better than 8 sec into 30 sec.
-		minetest.register_craft({
-			type = "shapeless",
-			output = "basic_materials:oil_extract",
-			recipe = {
-				leaves,
-				leaves,
-				leaves,
-				leaves,
-				leaves,
-				leaves
-			}
-		})
-	end
-
-
--- A use for extra seeds!
-	minetest.register_craft({
-		type = "shapeless",
-		output = "basic_materials:oil_extract",
-		recipe = {
-			"group:seed"
-		}
-	})
-end -- basic materials
-
-
-local function craft_dirt(o,i,d)
-	minetest.register_craft({
-		output = o,
-		recipe = {
-			{nada, d, nada},
-			{d, i, d},
-			{nada, d, nada}
-		}
-	})
-end
-
--- ----------------------------------Begin Main Code Section --------------------------
-
-dumper()
-
-
-craft_dirt("default:dirt_with_rainforest_litter", "default:junglegrass", dirt)
-craft_dirt("default:dirt_with_dry_grass", "default:dry_grass_1", dirt)
-craft_dirt("default:dirt_with_grass", "default:grass_1", dirt)
-craft_dirt("default:dirt_with_snow", "default:snowblock", dirt)
-craft_dirt("default:dirt_with_snow", "default:snow", dirt)
-craft_dirt("default:dirt_with_coniferous_litter", "default:fern_1", dirt)
-craft_dirt("default:desert_sand", "default:cactus", sand)
-craft_dirt("default:desert_sand", "default:dry_shrub", sand)
-craft_dirt("default:sand","default:marram_grass_1", sand)
 
 --[[
 define_crops(
