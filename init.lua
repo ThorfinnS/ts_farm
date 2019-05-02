@@ -190,8 +190,6 @@ end
 -- ---------------------------------------------------------------------------------------
 
 
-dumper()
-
 dofile(modpath..'/newblocks.lua')
 dofile(modpath..'/mod_tweaks.lua')
 dofile(modpath..'/overrides.lua')
