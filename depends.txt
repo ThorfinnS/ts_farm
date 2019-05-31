@@ -1,6 +1,2 @@
 default?
 farming
-cottages?
-moreblocks?
-basic_materials?
-wooden_bucket?
