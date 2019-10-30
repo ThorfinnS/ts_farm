@@ -5,10 +5,10 @@ local function define_crops(name, desc, cropgroups, seedgroups, growgroups, matu
 	fully_grown, lmin, lmax, dropper,
 	hmin, hmax, seed, rarity, place_it, dec_name, spawnon, spawnby, num)
 
-local mc,s,p,u=modname..':','seed','.png','_'
+local mc,s,p=modname..':','seed','.png'
 local cropname=mc..name
-local seedname,stagename=mc..s..u..name,name..u
-local croppng,seedpng=name..p,name..u..s..p
+local seedname,stagename=mc..s.."_"..name,name.."_"
+local croppng,seedpng=name..p,name.."_"..s..p
 -- Goofy naming convention, I know. Why the nodename is mod:seed_crop instead of
 --		mod:crop_seed, like the rest. Make more coding...?
 --		I'm going to preserve current naming for existing games. Maybe it
@@ -18,6 +18,7 @@ local croppng,seedpng=name..p,name..u..s..p
 local function multiplier()
 	return (math.random()+math.random()+math.random()+math.random())/2
 end
+
 
 -- concatenate groups if any passed in
 local seed_grp = {seed = 1, snappy = 3, attached_node = 1}
@@ -88,7 +89,7 @@ local crop_def = {
 
 local u={}
 local v,w,s=u,u,u
-minetest.log('stagename='..stagename)
+-- minetest.log('stagename='..stagename)
 
 for n=1,fully_grown do
 	u=v
@@ -167,7 +168,7 @@ if place_it then
 	local r=minetest.settings:get_bool("random_crop_seed") or true
 	if v == true then rarity = rarity * multiplier() end
 	if spawnon==nil then spawnon = {"default:dirt_with_grass"} end
-	minetest.log(dec_name.."  Rarity: "..rarity)
+	minetest.log("Added Crop - "..dec_name.."  Rarity: "..rarity)
 	local seeder = math.random(999)
 
 -- Next code block is legacy support for TenPlus1's fixed seeds.	
@@ -189,9 +190,9 @@ if place_it then
 -- To here.	
 
 
-minetest.log(hmin)
-minetest.log(hmax)
-minetest.log(dec_name)
+-- minetest.log(hmin)
+-- minetest.log(hmax)
+-- minetest.log(dec_name)
 minetest.register_decoration({
 	deco_type = "simple",
 	place_on = spawnon,
@@ -210,7 +211,25 @@ minetest.register_decoration({
 	spawn_by = spawnby,
 	num_spawn_by = num,
 })
+
+
 end
+
+
+if(minetest.registered_items["farming_nextgen:seeder"] ~= nil) then
+	farmingNGS:register_crop(seedname,cropname.."_1")
+end
+
+if(minetest.registered_items["farming_nextgen:harvester"] ~= nil) then
+	farmingNGH:register_harvest(cropname.."_", mature, fully_grown)
+end
+
+if(minetest.registered_items["bonemeal:mulch"] ~= nil) then
+-- if minetest.get_modpath("bonemeal") then
+	bonemeal:add_crop({{cropname.."_", fully_grown}})
+end
+
+
 end
 
 -- ---------------------------------------------------------------------------------------
@@ -270,7 +289,9 @@ define_crops(
 	{9,{'c',2,1},{'c',1,3},{'s',1,1},{'s',1,3}} --next stage, repeat as needed
 	},
 -- mapgen parameters
-	4, 6, 329, .03,true,"", --hmin, hmax, seed, rarity, place_it, dec_name
+	2, 6, 329, .03,true,"", --hmin, hmax, seed, rarity, place_it, dec_name
 	{sand}, '', -1) --spawnon, spawnby, num
+
+
 
 
